@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: docqa
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PGVECTOR_HOST
+        fromDatabase:
+          name: docqa-db
+          property: host
+      - key: PGVECTOR_PORT
+        fromDatabase:
+          name: docqa-db
+          property: port
+      - key: PGVECTOR_DB
+        fromDatabase:
+          name: docqa-db
+          property: database
+      - key: PGVECTOR_USER
+        fromDatabase:
+          name: docqa-db
+          property: user
+      - key: PGVECTOR_PASSWORD
+        fromDatabase:
+          name: docqa-db
+          property: password
+
+databases:
+  - name: docqa-db
+    plan: free
+    postgresMajorVersion: 16
