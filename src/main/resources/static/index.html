@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DocQA — Ask Your Documents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12151b;
+    --panel:#1a1e27;
+    --panel-line:#2a2f3b;
+    --paper:#f6f1e6;
+    --paper-line:#e2d9c5;
+    --accent:#6f8fe8;
+    --accent-dim:#3d4a72;
+    --amber:#c99a4b;
+    --text:#e9e7e0;
+    --text-dim:#9099ab;
+    --ink-text:#2b2620;
+    --ink-text-dim:#7a7263;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  header{
+    padding:28px 32px 20px;
+    border-bottom:1px solid var(--panel-line);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    font-family:'Fraunces',serif;
+    font-size:1.5rem;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .brand span{color:var(--accent);}
+  .session-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.72rem;
+    color:var(--text-dim);
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    padding:6px 10px;
+    border-radius:4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .session-tag button{
+    background:none;border:none;color:var(--accent);
+    font-family:inherit;font-size:0.72rem;cursor:pointer;padding:0;
+    text-decoration:underline;text-underline-offset:2px;
+  }
+  main{
+    flex:1;
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:1px;
+    background:var(--panel-line);
+    overflow:hidden;
+  }
+  @media (max-width:820px){
+    main{grid-template-columns:1fr;}
+  }
+
+  /* ---- Left: intake panel ---- */
+  .intake{
+    background:var(--panel);
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    overflow-y:auto;
+  }
+  .intake h2{
+    font-family:'Fraunces',serif;
+    font-size:0.95rem;
+    font-weight:500;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:0 0 12px;
+  }
+  .dropzone{
+    border:1.5px dashed var(--panel-line);
+    border-radius:6px;
+    padding:22px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone.dragover{
+    border-color:var(--accent);
+    background:rgba(111,143,232,0.06);
+  }
+  .dropzone p{margin:0;font-size:0.85rem;color:var(--text-dim);}
+  .dropzone strong{color:var(--text);font-weight:500;}
+  input[type=file]{display:none;}
+
+  .url-row{display:flex;gap:8px;}
+  input[type=text], input[type=url]{
+    flex:1;
+    background:var(--ink);
+    border:1px solid var(--panel-line);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:4px;
+    font-family:'Inter',sans-serif;
+    font-size:0.85rem;
+  }
+  input[type=text]:focus, input[type=url]:focus{
+    outline:none;border-color:var(--accent);
+  }
+  button.primary{
+    background:var(--accent);
+    color:#0d1220;
+    border:none;
+    padding:10px 16px;
+    border-radius:4px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition:opacity 0.15s ease;
+  }
+  button.primary:hover{opacity:0.88;}
+  button.primary:disabled{opacity:0.4;cursor:not-allowed;}
+
+  .catalog{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:4px;
+  }
+  .catalog-item{
+    background:var(--ink);
+    border:1px solid var(--panel-line);
+    border-left:3px solid var(--amber);
+    border-radius:3px;
+    padding:9px 11px;
+    font-size:0.78rem;
+  }
+  .catalog-item .name{
+    font-weight:500;
+    color:var(--text);
+    word-break:break-all;
+  }
+  .catalog-item .meta{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.68rem;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+  .status-line{
+    font-size:0.78rem;
+    color:var(--text-dim);
+    min-height:18px;
+  }
+  .status-line.error{color:#e08a8a;}
+  .status-line.ok{color:#8fce9e;}
+
+  /* ---- Right: reading room (chat) ---- */
+  .reading-room{
+    background:var(--paper);
+    color:var(--ink-text);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .transcript{
+    flex:1;
+    overflow-y:auto;
+    padding:32px 40px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    max-width:340px;
+    color:var(--ink-text-dim);
+  }
+  .empty-state .mark{
+    font-family:'Fraunces',serif;
+    font-size:2.4rem;
+    color:var(--paper-line);
+    margin-bottom:6px;
+  }
+  .empty-state p{font-size:0.9rem;line-height:1.5;}
+
+  .msg{max-width:640px;}
+  .msg.user{align-self:flex-end;}
+  .msg .role{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-text-dim);
+    margin-bottom:6px;
+  }
+  .msg.user .role{text-align:right;}
+  .msg .bubble{
+    font-size:0.98rem;
+    line-height:1.6;
+  }
+  .msg.user .bubble{
+    background:var(--ink);
+    color:var(--text);
+    padding:12px 16px;
+    border-radius:8px 8px 2px 8px;
+  }
+  .msg.assistant .bubble{
+    font-family:'Fraunces',serif;
+    font-size:1.05rem;
+    padding-bottom:4px;
+  }
+
+  .excerpts{
+    margin-top:14px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .excerpts summary{
+    cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.7rem;
+    color:var(--ink-text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  .excerpt-card{
+    background:#fffdf8;
+    border:1px solid var(--paper-line);
+    border-radius:3px;
+    padding:10px 12px;
+    margin-top:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.74rem;
+    line-height:1.5;
+    color:var(--ink-text-dim);
+    position:relative;
+  }
+  .excerpt-card::before{
+    content:"card " attr(data-index);
+    position:absolute;
+    top:-8px;
+    left:10px;
+    background:var(--paper);
+    padding:0 6px;
+    font-size:0.62rem;
+    color:var(--amber);
+  }
+
+  .composer{
+    border-top:1px solid var(--paper-line);
+    padding:18px 40px 24px;
+    display:flex;
+    gap:10px;
+  }
+  .composer textarea{
+    flex:1;
+    resize:none;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    background:#fffdf8;
+    color:var(--ink-text);
+    padding:12px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:0.92rem;
+    line-height:1.4;
+    height:52px;
+  }
+  .composer textarea:focus{outline:none;border-color:var(--accent);}
+  .composer button{
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:0 22px;
+    border-radius:6px;
+    font-weight:600;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .composer button:disabled{opacity:0.35;cursor:not-allowed;}
+
+  .typing{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.78rem;
+    color:var(--ink-text-dim);
+  }
+
+  .bubble table.md-table{
+      border-collapse:collapse;
+      width:100%;
+      margin:10px 0;
+      font-size:0.88rem;
+  }
+  .bubble table.md-table th, .bubble table.md-table td{
+      border:1px solid var(--paper-line);
+      padding:6px 10px;
+      text-align:left;
+      vertical-align:top;
+  }
+  .bubble table.md-table th{
+      background:#efe8d8;
+      font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Doc<span>QA</span></div>
+  <div class="session-tag">
+    session: <span id="sessionIdLabel"></span>
+    <button id="newSessionBtn" type="button">new session</button>
+  </div>
+</header>
+
+<main>
+  <section class="intake">
+    <div>
+      <h2>Add a document</h2>
+      <div class="dropzone" id="dropzone">
+        <p><strong>Drop a file here</strong><br/>or click to browse — PDF, DOCX, TXT (max 10MB)</p>
+        <input type="file" id="fileInput" />
+      </div>
+    </div>
+
+    <div>
+      <h2>Add a webpage</h2>
+      <div class="url-row">
+        <input type="url" id="urlInput" placeholder="https://example.com/article" />
+        <button class="primary" id="urlBtn" type="button">Add</button>
+      </div>
+    </div>
+
+    <div id="intakeStatus" class="status-line"></div>
+
+    <div>
+      <h2>Indexed sources</h2>
+      <div class="catalog" id="catalog"></div>
+    </div>
+  </section>
+
+  <section class="reading-room">
+    <div class="transcript" id="transcript">
+      <div class="empty-state" id="emptyState">
+        <div class="mark">§</div>
+        <p>Add a file or webpage on the left, then ask a question about it here.</p>
+      </div>
+    </div>
+    <div class="composer">
+      <textarea id="questionInput" placeholder="Ask something about your documents…"></textarea>
+      <button id="askBtn" type="button">Ask</button>
+    </div>
+  </section>
+</main>
+
+<script>
+  const API_BASE = ''; // same origin
+
+  function getSessionId() {
+    let id = localStorage.getItem('docqa_session_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('docqa_session_id', id);
+    }
+    return id;
+  }
+
+  let sessionId = getSessionId();
+  document.getElementById('sessionIdLabel').textContent = sessionId.slice(0, 8);
+
+  document.getElementById('newSessionBtn').addEventListener('click', async () => {
+      const oldSessionId = sessionId;
+      try {
+          await fetch(`${API_BASE}/api/documents/session/${oldSessionId}`, { method: 'DELETE' });
+      } catch (err) {
+          // Non-fatal — proceed to a new session even if cleanup fails.
+          console.warn('Failed to clear previous session:', err);
+      }
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('docqa_session_id', sessionId);
+      document.getElementById('sessionIdLabel').textContent = sessionId.slice(0, 8);
+      document.getElementById('catalog').innerHTML = '';
+      resetTranscript();
+      setStatus('Started a fresh session.', 'ok');
+  });
+
+  const emptyStateHTML = `
+    <div class="empty-state" id="emptyState">
+      <div class="mark">§</div>
+      <p>Add a file or webpage on the left, then ask a question about it here.</p>
+    </div>`;
+
+  function resetTranscript() {
+    document.getElementById('transcript').innerHTML = emptyStateHTML;
+  }
+
+  function setStatus(text, kind) {
+    const el = document.getElementById('intakeStatus');
+    el.textContent = text;
+    el.className = 'status-line' + (kind ? ' ' + kind : '');
+  }
+
+  function addCatalogEntry(name, chunks) {
+    const catalog = document.getElementById('catalog');
+    const item = document.createElement('div');
+    item.className = 'catalog-item';
+    item.innerHTML = `<div class="name">${escapeHtml(name)}</div><div class="meta">${chunks} chunks indexed</div>`;
+    catalog.prepend(item);
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // ---- File upload ----
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) uploadFile(fileInput.files[0]);
+  });
+
+  async function uploadFile(file) {
+    if (file.size > 10 * 1024 * 1024) {
+      setStatus(`"${file.name}" is over the 10MB limit.`, 'error');
+      return;
+    }
+    setStatus(`Indexing "${file.name}"…`);
+    const form = new FormData();
+    form.append('file', file);
+    form.append('sessionId', sessionId);
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/upload`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      addCatalogEntry(data.sourceName, data.chunksIndexed);
+      setStatus(`Indexed "${data.sourceName}" — ${data.chunksIndexed} chunks.`, 'ok');
+    } catch (err) {
+      setStatus(err.message, 'error');
+    } finally {
+      fileInput.value = '';
+    }
+  }
+
+  // ---- URL ingestion ----
+  document.getElementById('urlBtn').addEventListener('click', async () => {
+    const urlInput = document.getElementById('urlInput');
+    const url = urlInput.value.trim();
+    if (!url) return;
+    setStatus(`Fetching ${url}…`);
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/ingest-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, sessionId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ingestion failed');
+      addCatalogEntry(data.sourceName, data.chunksIndexed);
+      setStatus(`Indexed ${data.sourceName} — ${data.chunksIndexed} chunks.`, 'ok');
+      urlInput.value = '';
+    } catch (err) {
+      setStatus(err.message, 'error');
+    }
+  });
+
+  // ---- Chat ----
+  const transcript = document.getElementById('transcript');
+  const questionInput = document.getElementById('questionInput');
+  const askBtn = document.getElementById('askBtn');
+
+  function appendUserMessage(text) {
+    document.getElementById('emptyState')?.remove();
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.innerHTML = `<div class="role">You</div><div class="bubble">${escapeHtml(text)}</div>`;
+    transcript.appendChild(div);
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function renderMarkdown(text) {
+      let html = escapeHtml(text);
+
+      // Tables: convert contiguous lines starting with | into an actual <table>
+      html = html.replace(/((?:^\|.*\|\s*$\n?)+)/gm, (block) => {
+          const rows = block.trim().split('\n').map(r =>
+              r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
+          );
+          // Second row is the |---|---| separator — drop it if present.
+          if (rows.length > 1 && rows[1].every(cell => /^:?-{2,}:?$/.test(cell))) {
+              rows.splice(1, 1);
+          }
+          const [header, ...body] = rows;
+          const thead = `<tr>${header.map(c => `<th>${c}</th>`).join('')}</tr>`;
+          const tbody = body.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+          return `<table class="md-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+      });
+
+      html = html.replace(/^### (.*)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^## (.*)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^# (.*)$/gm, '<h2>$1</h2>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/g, '<em>$1</em>');
+      html = html.replace(/^\* (.*)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+      html = html.replace(/\n{2,}/g, '</p><p>');
+      html = html.replace(/\n/g, '<br>');
+      return `<p>${html}</p>`;
+  }
+
+  function appendAssistantMessage(text, excerpts) {
+      const div = document.createElement('div');
+      div.className = 'msg assistant';
+      let excerptsHtml = '';
+      if (excerpts && excerpts.length) {
+          excerptsHtml = `<details class="excerpts"><summary>${excerpts.length} source excerpt${excerpts.length > 1 ? 's' : ''}</summary>`
+              + excerpts.map((e, i) => `<div class="excerpt-card" data-index="${i + 1}">${escapeHtml(e)}</div>`).join('')
+              + `</details>`;
+      }
+      div.innerHTML = `<div class="role">DocQA</div><div class="bubble">${renderMarkdown(text)}</div>${excerptsHtml}`;
+      transcript.appendChild(div);
+      transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function appendTyping() {
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.id = 'typingIndicator';
+    div.innerHTML = `<div class="typing">reading…</div>`;
+    transcript.appendChild(div);
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function removeTyping() {
+    document.getElementById('typingIndicator')?.remove();
+  }
+
+  async function askQuestion() {
+    const question = questionInput.value.trim();
+    if (!question) return;
+    appendUserMessage(question);
+    questionInput.value = '';
+    askBtn.disabled = true;
+    appendTyping();
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, question })
+      });
+      const data = await res.json();
+      removeTyping();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      appendAssistantMessage(data.answer, data.sourceExcerpts);
+    } catch (err) {
+      removeTyping();
+      appendAssistantMessage(`Error: ${err.message}`, []);
+    } finally {
+      askBtn.disabled = false;
+    }
+  }
+
+  askBtn.addEventListener('click', askQuestion);
+  questionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      askQuestion();
+    }
+  });
+</script>
+
+</body>
+</html>

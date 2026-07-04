@@ -2,8 +2,8 @@ package com.example.docqa.config;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.googleai.GoogleAiEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.data.segment.TextSegment;
@@ -15,19 +15,19 @@ import java.time.Duration;
 
 /**
  * Central place where all LangChain4j building blocks are wired up as Spring beans.
- * Swap OpenAiChatModel / OpenAiEmbeddingModel for other providers (Anthropic, Ollama, etc.)
- * without touching the rest of the app.
+ * Uses Google Gemini (free tier via Google AI Studio) for chat + embeddings —
+ * swap these beans for another provider without touching the rest of the app.
  */
 @Configuration
 public class LangChain4jConfig {
 
-    @Value("${openai.api-key}")
-    private String openAiApiKey;
+    @Value("${gemini.api-key}")
+    private String geminiApiKey;
 
-    @Value("${openai.chat-model}")
+    @Value("${gemini.chat-model}")
     private String chatModelName;
 
-    @Value("${openai.embedding-model}")
+    @Value("${gemini.embedding-model}")
     private String embeddingModelName;
 
     @Value("${pgvector.host}")
@@ -53,23 +53,22 @@ public class LangChain4jConfig {
 
     @Bean
     public ChatLanguageModel chatLanguageModel() {
-        return OpenAiChatModel.builder()
-                .apiKey(openAiApiKey)
+        return GoogleAiGeminiChatModel.builder()
+                .apiKey(geminiApiKey)
                 .modelName(chatModelName)
                 .temperature(0.2)
-                .timeout(Duration.ofSeconds(60))
-                .maxRetries(2)
-                .logRequests(false)
-                .logResponses(false)
+                .timeout(Duration.ofSeconds(180))
+                .maxRetries(0)
                 .build();
     }
 
     @Bean
     public EmbeddingModel embeddingModel() {
-        return OpenAiEmbeddingModel.builder()
-                .apiKey(openAiApiKey)
+        return GoogleAiEmbeddingModel.builder()
+                .apiKey(geminiApiKey)
                 .modelName(embeddingModelName)
-                .timeout(Duration.ofSeconds(60))
+                .maxRetries(3)
+                .outputDimensionality(pgDimension)
                 .build();
     }
 
@@ -86,7 +85,7 @@ public class LangChain4jConfig {
                 .table(pgTable)
                 .dimension(pgDimension)
                 .createTable(true)
-                .useIndex(true)
+                .useIndex(false)
                 .build();
     }
 }

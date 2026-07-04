@@ -6,6 +6,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,7 @@ public class QAService {
     private final ChatLanguageModel chatLanguageModel;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
+    private final Logger log = LogManager.getLogger(QAService.class);
 
     @Value("${app.max-retrieved-segments}")
     private int maxResults;
@@ -64,8 +67,20 @@ public class QAService {
                 .collect(Collectors.joining("\n---\n"));
 
         String prompt = """
-                Answer the question using ONLY the context below. If the answer isn't
-                contained in the context, say you don't know rather than guessing.
+                You are analyzing the user's own uploaded documents. Answer using the
+                context below as your primary source of truth.
+
+                - You MAY synthesize or infer a reasonable answer by combining facts
+                  that are present in the context (e.g. listing technologies mentioned
+                  across multiple bullet points), even if no single sentence states
+                  the answer directly.
+                - If asked to compare, evaluate, or give an opinion (e.g. "which is
+                  better", "is this good"), give a grounded, honest assessment based on
+                  concrete differences visible in the context, and briefly note that
+                  it's a judgment call rather than a fact.
+                - Only say you don't know if the context truly contains nothing
+                  relevant to the question — don't refuse just because the answer
+                  requires connecting a few pieces of information.
 
                 Context:
                 %s
@@ -73,7 +88,21 @@ public class QAService {
                 Question: %s
                 """.formatted(context, question);
 
-        String answerText = chatLanguageModel.generate(prompt);
+        String answerText;
+        try {
+            log.debug("Sending prompt to Gemini ({} chars)", prompt.length());
+            answerText = chatLanguageModel.generate(prompt);
+        } catch (Exception e) {
+            log.error("Gemini chat call failed. Prompt length={} chars, retrieved chunks={}",
+                    prompt.length(), retrieved.size(), e);
+            if (e.getCause() instanceof java.net.SocketTimeoutException) {
+                throw new RuntimeException(
+                        "Gemini took too long to respond. This can happen on broad questions " +
+                                "that pull in a lot of context (like comparing whole documents). Try " +
+                                "asking something more specific, or try again in a moment.", e);
+            }
+            throw e;
+        }
 
         List<String> excerpts = retrieved.stream()
                 .map(c -> truncate(c.textSegment().text(), 200))

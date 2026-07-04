@@ -70,11 +70,20 @@ public class DocumentIngestionService {
      * Fetches a webpage, strips it down to readable text, chunks, embeds,
      * and stores it with sessionId + sourceName (the URL) metadata.
      */
-    public int ingestUrl(String url, String sessionId) throws IOException {
-        org.jsoup.nodes.Document htmlDoc = Jsoup.connect(url)
-                .userAgent("Mozilla/5.0 (compatible; DocQaBot/1.0)")
-                .timeout(15_000)
-                .get();
+     public int ingestUrl(String url, String sessionId) throws IOException {
+        org.jsoup.nodes.Document htmlDoc;
+        try {
+            htmlDoc = Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0 (compatible; DocQaBot/1.0)")
+                    .timeout(15_000)
+                    .get();
+        } catch (IOException e) {
+            String host = java.net.URI.create(url).getHost();
+            throw new IOException(
+                    "Couldn't fetch " + host + ". The site may be blocking automated " +
+                            "requests, require a login, or be temporarily unreachable. If this is " +
+                            "your own document, uploading it as a file instead is more reliable.", e);
+        }
 
         // Plain readable text, stripped of scripts/styles/nav markup.
         String text = htmlDoc.text();
