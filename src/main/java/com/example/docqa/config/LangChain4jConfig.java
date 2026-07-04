@@ -59,6 +59,7 @@ public class LangChain4jConfig {
                 .temperature(0.2)
                 .timeout(Duration.ofSeconds(180))
                 .maxRetries(0)
+                .maxOutputTokens(1024)
                 .build();
     }
 
