@@ -124,6 +124,12 @@ public class QAService {
                                 "that pull in a lot of context. Try asking something more specific, " +
                                 "or try again in a moment.", e);
             }
+            if (e.getMessage() != null && e.getMessage().contains("RESOURCE_EXHAUSTED")) {
+                throw new RuntimeException(
+                        "You've hit Gemini's free-tier rate limit (a cap on requests per " +
+                                "minute). Wait about 30-60 seconds and try again - this isn't a bug, " +
+                                "just the free tier's usage cap.", e);
+            }
             throw e;
         }
 
