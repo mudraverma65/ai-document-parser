@@ -1,5 +1,7 @@
 # DocQA — Document Q&A with RAG (Java + LangChain4j)
 
+**Live demo:** https://docqa-c83g.onrender.com/
+
 A personal Retrieval-Augmented Generation (RAG) service. Upload files or webpages,
 then ask questions answered strictly from that content, with conversational
 follow-up support.
