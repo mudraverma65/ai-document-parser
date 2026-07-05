@@ -75,14 +75,17 @@ public class LangChain4jConfig {
 
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
+        org.postgresql.ds.PGSimpleDataSource dataSource = new org.postgresql.ds.PGSimpleDataSource();
+        dataSource.setServerNames(new String[]{pgHost});
+        dataSource.setPortNumbers(new int[]{pgPort});
+        dataSource.setDatabaseName(pgDatabase);
+        dataSource.setUser(pgUser);
+        dataSource.setPassword(pgPassword);
+        dataSource.setSslMode("require"); // Neon (and most managed Postgres) requires SSL
+
         // createTable=true will auto-create the pgvector table + extension on first boot.
-        // Set to false once the schema exists in production to avoid repeated DDL checks.
-        return PgVectorEmbeddingStore.builder()
-                .host(pgHost)
-                .port(pgPort)
-                .database(pgDatabase)
-                .user(pgUser)
-                .password(pgPassword)
+        return PgVectorEmbeddingStore.datasourceBuilder()
+                .datasource(dataSource)
                 .table(pgTable)
                 .dimension(pgDimension)
                 .createTable(true)

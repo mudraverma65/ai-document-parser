@@ -2,33 +2,18 @@ services:
   - type: web
     name: docqa
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: GEMINI_API_KEY
         sync: false
       - key: PGVECTOR_HOST
-        fromDatabase:
-          name: docqa-db
-          property: host
+        sync: false
       - key: PGVECTOR_PORT
-        fromDatabase:
-          name: docqa-db
-          property: port
+        sync: false
       - key: PGVECTOR_DB
-        fromDatabase:
-          name: docqa-db
-          property: database
+        sync: false
       - key: PGVECTOR_USER
-        fromDatabase:
-          name: docqa-db
-          property: user
+        sync: false
       - key: PGVECTOR_PASSWORD
-        fromDatabase:
-          name: docqa-db
-          property: password
-
-databases:
-  - name: docqa-db
-    plan: free
-    postgresMajorVersion: 16
+        sync: false
